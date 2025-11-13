@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>37 Sound Matching Game</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #f3f3f3;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 {
+    margin-bottom: 10px;
+  }
+  #game-area {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .image-button {
+    margin: 5px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .image-button:hover {
+    transform: scale(1.05);
+    border-color: #888;
+  }
+  .image-button img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+  }
+  .correct-highlight {
+    border-color: #2ecc71 !important;
+    box-shadow: 0 0 10px #2ecc71;
+  }
+  #status {
+    margin: 15px 0;
+    font-size: 18px;
+  }
+  #play-sound {
+    margin-bottom: 15px;
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+  #score-area {
+    font-size: 20px;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎵 Sound Matching Game</h1>
+<p>Listen to the sound and click the matching image!</p>
+<button id="play-sound">▶️ Play Sound</button>
+<div id="status"></div>
+<div id="game-area"></div>
+<div id="score-area"></div>
+
+<script>
+const TOTAL_ROUNDS = 37;
+let currentRound = 0;
+let score = 0;
+
+// Pad numbers 1–9 with leading zero
+function pad(num) {
+  return num < 10 ? '0' + num : String(num);
+}
+
+// Preload sounds and images
+const sounds = [];
+const images = [];
+for (let i = 1; i <= TOTAL_ROUNDS; i++) {
+  const num = pad(i);
+  sounds.push(new Audio(`sounds/${num}.mp3`));
+  images.push(`images/${num}.png`);
+}
+
+const gameArea = document.getElementById('game-area');
+const playButton = document.getElementById('play-sound');
+const statusText = document.getElementById('status');
+const scoreArea = document.getElementById('score-area');
+
+// Shuffle helper
+function shuffle(array) {
+  let a = array.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Random sound order (used once each game)
+const soundOrder = shuffle([...Array(TOTAL_ROUNDS).keys()]);
+let currentSoundIndex = soundOrder[currentRound];
+
+// Active list of image buttons for highlight tracking
+let imageButtons = [];
+
+function createImageGrid() {
+  gameArea.innerHTML = '';
+  imageButtons = [];
+  
+  const shuffledImages = shuffle([...Array(TOTAL_ROUNDS).keys()]);
+  shuffledImages.forEach(imgIndex => {
+    const btn = document.createElement('div');
+    btn.className = 'image-button';
+    const img = document.createElement('img');
+    img.src = images[imgIndex];
+    btn.appendChild(img);
+    btn.addEventListener('click', () => handleGuess(imgIndex));
+    gameArea.appendChild(btn);
+    imageButtons.push({ btn, imgIndex });
+  });
+}
+
+function startRound() {
+  if (currentRound >= TOTAL_ROUNDS) {
+    endGame();
+    return;
+  }
+
+  // Set next sound and regenerate grid
+  currentSoundIndex = soundOrder[currentRound];
+  createImageGrid();
+  clearHighlights();
+
+  statusText.textContent = `Round ${pad(currentRound + 1)} of ${pad(TOTAL_ROUNDS)}`;
+  scoreArea.textContent = `Score: ${score}`;
+}
+
+function handleGuess(clickedIndex) {
+  if (clickedIndex === currentSoundIndex) {
+    statusText.textContent = "✅ Correct!";
+    score++;
+  } else {
+    statusText.textContent = `❌ Wrong! (Correct was image ${pad(currentSoundIndex + 1)})`;
+    highlightCorrectImage(currentSoundIndex);
+  }
+  currentRound++;
+  setTimeout(startRound, 1500);
+}
+
+function highlightCorrectImage(index) {
+  const correct = imageButtons.find(b => b.imgIndex === index);
+  if (correct) correct.btn.classList.add('correct-highlight');
+}
+
+function clearHighlights() {
+  imageButtons.forEach(b => b.btn.classList.remove('correct-highlight'));
+}
+
+playButton.addEventListener('click', () => {
+  if (currentRound >= TOTAL_ROUNDS) return;
+  sounds[currentSoundIndex].play();
+});
+
+function endGame() {
+  gameArea.innerHTML = '';
+  playButton.style.display = 'none';
+  statusText.textContent = '';
+  scoreArea.textContent = `🎯 Final Score: ${score} / ${TOTAL_ROUNDS}`;
+}
+
+// Start the game
+startRound();
+</script>
+
+</body>
+</html>
